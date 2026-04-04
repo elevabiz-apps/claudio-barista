@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
     fontWeight: "500",
-    marginTop: 3,
+    marginTop: 6,
     marginBottom: 8,
   },
   counter: {
