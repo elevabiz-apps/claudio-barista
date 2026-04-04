@@ -89,6 +89,56 @@ export async function addCoffeeForDate(date: string): Promise<CoffeeEntry | null
   return data;
 }
 
+export async function getStreaks(): Promise<{ current: number; max: number }> {
+  const { data, error } = await supabase
+    .from("coffees")
+    .select("date")
+    .order("date", { ascending: true });
+
+  if (error || !data || data.length === 0) return { current: 0, max: 0 };
+
+  const dates = [...new Set(data.map((e) => e.date))].sort();
+  const today = getLocalDate();
+
+  function daysBetween(a: string, b: string): number {
+    const da = new Date(a + "T12:00:00");
+    const db = new Date(b + "T12:00:00");
+    return Math.round((db.getTime() - da.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  function subtractDays(date: string, n: number): string {
+    const d = new Date(date + "T12:00:00");
+    d.setDate(d.getDate() - n);
+    return d.toISOString().split("T")[0];
+  }
+
+  // Current streak: consecutive days going back from today.
+  // If today has no coffees yet, anchor on yesterday so the streak survives
+  // during the day until the user adds their first coffee.
+  const dateSet = new Set(dates);
+  const anchor = dateSet.has(today) ? today : subtractDays(today, 1);
+  let current = 0;
+  let cursor = anchor;
+  while (dateSet.has(cursor)) {
+    current++;
+    cursor = subtractDays(cursor, 1);
+  }
+
+  // Max streak
+  let max = 1;
+  let streak = 1;
+  for (let i = 1; i < dates.length; i++) {
+    if (daysBetween(dates[i - 1], dates[i]) === 1) {
+      streak++;
+      if (streak > max) max = streak;
+    } else {
+      streak = 1;
+    }
+  }
+
+  return { current, max };
+}
+
 export async function getCoffeesInRange(
   startDate: string,
   endDate: string

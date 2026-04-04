@@ -55,6 +55,7 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.inner}>
         <View style={styles.header}>
           <Ionicons name="cafe" size={48} color={colors.accent} />
           <Text style={styles.appName}>Contador de Cafés</Text>
@@ -137,6 +138,7 @@ export default function RegisterScreen() {
             </Link>
           </View>
         </View>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -149,9 +151,14 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingHorizontal: 28,
+    alignItems: "center",
     justifyContent: "center",
     paddingVertical: 60,
+  },
+  inner: {
+    width: "100%",
+    maxWidth: 480,
+    paddingHorizontal: 28,
   },
   header: {
     alignItems: "center",

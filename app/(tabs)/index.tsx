@@ -16,6 +16,7 @@ import {
   removeCoffee,
   getTodayCount,
   getWeekSummary,
+  getStreaks,
 } from "../../lib/coffee";
 import { getLocalDate, getLocalDateDisplay } from "../../lib/date";
 import { showToast } from "../../lib/toast";
@@ -36,12 +37,20 @@ export default function HomeScreen() {
   const [adding, setAdding] = useState(false);
   const [weekTotal, setWeekTotal] = useState(0);
   const [weekAvg, setWeekAvg] = useState("0");
+  const [streak, setStreak] = useState(0);
+  const [maxStreak, setMaxStreak] = useState(0);
 
   const fetchData = useCallback(async () => {
-    const [c, week] = await Promise.all([getTodayCount(), getWeekSummary()]);
+    const [c, week, streaks] = await Promise.all([
+      getTodayCount(),
+      getWeekSummary(),
+      getStreaks(),
+    ]);
     setCount(c);
     setWeekTotal(week.total);
     setWeekAvg(week.avg);
+    setStreak(streaks.current);
+    setMaxStreak(streaks.max);
     setLoading(false);
   }, []);
 
@@ -97,6 +106,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
+      <View style={styles.centerContent}>
       <View style={styles.counterSection}>
         <Text style={styles.counterLabel}>Cafés hoy</Text>
         <Text style={styles.counter}>{count}</Text>
@@ -117,6 +127,19 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.weekSummary}>
+        <View style={styles.weekStat}>
+          <View style={styles.streakValueRow}>
+            <Text style={[styles.weekValue, streak > 0 && styles.streakValue]}>
+              {streak}
+            </Text>
+            {streak > 0 && <Text style={styles.streakFire}>🔥</Text>}
+          </View>
+          <Text style={[styles.weekLabel, styles.streakLabel]}>
+            {streak === 1 ? "día seguido" : "días seguidos"}
+            {maxStreak > streak ? ` · max ${maxStreak}` : ""}
+          </Text>
+        </View>
+        <View style={styles.weekDivider} />
         <View style={styles.weekStat}>
           <Text style={styles.weekValue}>{weekTotal}</Text>
           <Text style={styles.weekLabel}>esta semana</Text>
@@ -160,6 +183,7 @@ export default function HomeScreen() {
 
         <View style={styles.removeButton} />
       </View>
+      </View>
     </View>
   );
 }
@@ -168,19 +192,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    justifyContent: "center",
-    alignItems: "center",
     paddingHorizontal: 24,
   },
   header: {
-    position: "absolute",
-    top: 70,
+    paddingTop: Platform.OS === "web" ? 36 : 60,
+    paddingBottom: 16,
+    alignItems: "center",
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
   },
   signOutButton: {
     position: "absolute",
     right: -120,
-    top: 0,
+    top: Platform.OS === "web" ? 36 : 60,
     padding: 8,
   },
   appName: {
@@ -239,15 +266,31 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
   },
+  streakValueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  streakValue: {
+    color: colors.accent,
+  },
+  streakFire: {
+    fontSize: 14,
+    lineHeight: 24,
+  },
+  streakLabel: {
+    fontSize: 10,
+  },
   weekValue: {
     fontSize: 20,
     fontWeight: "700",
     color: colors.text,
   },
   weekLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textSecondary,
     marginTop: 2,
+    textAlign: "center",
   },
   weekDivider: {
     width: 1,
