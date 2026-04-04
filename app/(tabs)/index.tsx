@@ -19,6 +19,7 @@ import {
 } from "../../lib/coffee";
 import { getLocalDate, getLocalDateDisplay } from "../../lib/date";
 import { showToast } from "../../lib/toast";
+import { signOut } from "../../lib/auth";
 
 function haptic(type: "success" | "light") {
   if (Platform.OS === "web") return;
@@ -91,6 +92,9 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <Text style={styles.appName}>Contador de Cafés</Text>
         <Text style={styles.date}>{dateStr}</Text>
+        <TouchableOpacity style={styles.signOutButton} onPress={signOut} activeOpacity={0.7}>
+          <Ionicons name="log-out-outline" size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.counterSection}>
@@ -172,6 +176,12 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 70,
     alignItems: "center",
+  },
+  signOutButton: {
+    position: "absolute",
+    right: -120,
+    top: 0,
+    padding: 8,
   },
   appName: {
     fontSize: 20,
