@@ -52,6 +52,43 @@ export async function getTodayCount(): Promise<number> {
   return count ?? 0;
 }
 
+export async function getWeekSummary(): Promise<{
+  total: number;
+  avg: string;
+}> {
+  const today = getLocalDate();
+  const start = new Date(today + "T12:00:00");
+  start.setDate(start.getDate() - 6);
+  const startStr = start.toISOString().split("T")[0];
+
+  const { count, error } = await supabase
+    .from("coffees")
+    .select("*", { count: "exact", head: true })
+    .gte("date", startStr)
+    .lte("date", today);
+
+  if (error) {
+    console.error("Error getting week summary:", error);
+    return { total: 0, avg: "0" };
+  }
+  const total = count ?? 0;
+  return { total, avg: (total / 7).toFixed(1) };
+}
+
+export async function addCoffeeForDate(date: string): Promise<CoffeeEntry | null> {
+  const { data, error } = await supabase
+    .from("coffees")
+    .insert({ date })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error adding coffee:", error);
+    return null;
+  }
+  return data;
+}
+
 export async function getCoffeesInRange(
   startDate: string,
   endDate: string
