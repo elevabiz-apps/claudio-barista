@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
     fontWeight: "500",
-    marginTop: 6,
+    marginTop: Platform.OS === "web" ? 6 : 16,
     marginBottom: 8,
   },
   counter: {
