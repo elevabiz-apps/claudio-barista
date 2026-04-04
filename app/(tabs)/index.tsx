@@ -89,7 +89,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.appName}>Claudio Barista</Text>
+        <Text style={styles.appName}>Contador de Cafés</Text>
         <Text style={styles.date}>{dateStr}</Text>
       </View>
 
@@ -193,6 +193,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
     fontWeight: "500",
+    marginTop: 3,
     marginBottom: 8,
   },
   counter: {
