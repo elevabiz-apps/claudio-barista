@@ -21,6 +21,7 @@ import {
 import { getLocalDate, getLocalDateDisplay } from "../../lib/date";
 import { showToast } from "../../lib/toast";
 import { signOut } from "../../lib/auth";
+import CoffeeTypePicker from "../../components/CoffeeTypePicker";
 
 function haptic(type: "success" | "light") {
   if (Platform.OS === "web") return;
@@ -35,6 +36,7 @@ export default function HomeScreen() {
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
   const [weekTotal, setWeekTotal] = useState(0);
   const [weekAvg, setWeekAvg] = useState("0");
   const [streak, setStreak] = useState(0);
@@ -60,9 +62,9 @@ export default function HomeScreen() {
     }, [fetchData])
   );
 
-  const handleAdd = async () => {
+  const handleAdd = async (type?: string | null) => {
     setAdding(true);
-    const result = await addCoffee();
+    const result = await addCoffee(type);
     if (result) {
       setCount((prev) => prev + 1);
       setWeekTotal((prev) => prev + 1);
@@ -71,6 +73,10 @@ export default function HomeScreen() {
       showToast("No se pudo añadir el café", "error");
     }
     setAdding(false);
+  };
+
+  const handleAddWithType = (typeId: string) => {
+    handleAdd(typeId);
   };
 
   const handleRemove = async () => {
@@ -165,23 +171,40 @@ export default function HomeScreen() {
           />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.addButton, adding && styles.addButtonDisabled]}
-          onPress={handleAdd}
-          disabled={adding}
-          activeOpacity={0.8}
-        >
-          {adding ? (
-            <ActivityIndicator size="small" color={colors.background} />
-          ) : (
-            <>
-              <Ionicons name="cafe" size={32} color={colors.background} />
-              <Text style={styles.addButtonText}>Añadir café</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        <View style={styles.addButtonGroup}>
+          <TouchableOpacity
+            style={[styles.addButton, adding && styles.addButtonDisabled]}
+            onPress={() => handleAdd(null)}
+            disabled={adding}
+            activeOpacity={0.8}
+          >
+            {adding ? (
+              <ActivityIndicator size="small" color={colors.background} />
+            ) : (
+              <>
+                <Ionicons name="cafe" size={28} color={colors.background} />
+                <Text style={styles.addButtonText}>Añadir café</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.typeButton, adding && styles.addButtonDisabled]}
+            onPress={() => setPickerVisible(true)}
+            disabled={adding}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="chevron-up" size={18} color={colors.background} />
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.removeButton} />
+
+        <CoffeeTypePicker
+          visible={pickerVisible}
+          onClose={() => setPickerVisible(false)}
+          onSelect={handleAddWithType}
+        />
       </View>
       </View>
     </View>
@@ -303,20 +326,41 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 20,
   },
-  addButton: {
-    backgroundColor: colors.accent,
-    width: 160,
-    height: 56,
-    borderRadius: 28,
+  addButtonGroup: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+    gap: 2,
     shadowColor: colors.accent,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 8,
+  },
+  addButton: {
+    backgroundColor: colors.accent,
+    height: 56,
+    paddingHorizontal: 20,
+    borderTopLeftRadius: 28,
+    borderBottomLeftRadius: 28,
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  typeButton: {
+    backgroundColor: colors.accent,
+    width: 40,
+    height: 56,
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+    borderTopRightRadius: 28,
+    borderBottomRightRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    borderLeftWidth: 1,
+    borderLeftColor: "rgba(0,0,0,0.15)",
   },
   addButtonDisabled: {
     opacity: 0.7,

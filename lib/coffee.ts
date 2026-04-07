@@ -5,13 +5,14 @@ export interface CoffeeEntry {
   id: string;
   created_at: string;
   date: string; // YYYY-MM-DD
+  type: string | null;
 }
 
-export async function addCoffee(): Promise<CoffeeEntry | null> {
+export async function addCoffee(type?: string | null): Promise<CoffeeEntry | null> {
   const today = getLocalDate();
   const { data, error } = await supabase
     .from("coffees")
-    .insert({ date: today })
+    .insert({ date: today, ...(type ? { type } : {}) })
     .select()
     .single();
 
@@ -75,10 +76,10 @@ export async function getWeekSummary(): Promise<{
   return { total, avg: (total / 7).toFixed(1) };
 }
 
-export async function addCoffeeForDate(date: string): Promise<CoffeeEntry | null> {
+export async function addCoffeeForDate(date: string, type?: string | null): Promise<CoffeeEntry | null> {
   const { data, error } = await supabase
     .from("coffees")
-    .insert({ date })
+    .insert({ date, ...(type ? { type } : {}) })
     .select()
     .single();
 
@@ -137,6 +138,34 @@ export async function getStreaks(): Promise<{ current: number; max: number }> {
   }
 
   return { current, max };
+}
+
+export async function getCoffeeTypeBreakdown(
+  startDate: string,
+  endDate: string
+): Promise<{ type: string | null; count: number }[]> {
+  const { data, error } = await supabase
+    .from("coffees")
+    .select("type")
+    .gte("date", startDate)
+    .lte("date", endDate);
+
+  if (error || !data) return [];
+
+  const grouped: Record<string, number> = {};
+  for (const entry of data) {
+    const key = entry.type ?? "__null__";
+    grouped[key] = (grouped[key] ?? 0) + 1;
+  }
+
+  const result = Object.entries(grouped)
+    .map(([key, count]) => ({ type: key === "__null__" ? null : key, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // Move null (sin especificar) to the end
+  const specified = result.filter((r) => r.type !== null);
+  const unspecified = result.filter((r) => r.type === null);
+  return [...specified, ...unspecified];
 }
 
 export async function getCoffeesInRange(

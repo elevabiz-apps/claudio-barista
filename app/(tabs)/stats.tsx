@@ -11,7 +11,8 @@ import {
 import { useFocusEffect } from "expo-router";
 import { LineChart, BarChart } from "react-native-chart-kit";
 import { colors } from "../../lib/theme";
-import { getCoffeesInRange } from "../../lib/coffee";
+import { getCoffeesInRange, getCoffeeTypeBreakdown } from "../../lib/coffee";
+import { getTypeById } from "../../lib/coffeeTypes";
 
 type Period = "week" | "month" | "year";
 
@@ -79,13 +80,18 @@ function getMonthLabel(dateStr: string): string {
 export default function StatsScreen() {
   const [period, setPeriod] = useState<Period>("week");
   const [data, setData] = useState<{ date: string; count: number }[]>([]);
+  const [breakdown, setBreakdown] = useState<{ type: string | null; count: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     const { start, end } = getDateRange(period);
-    const coffees = await getCoffeesInRange(start, end);
+    const [coffees, types] = await Promise.all([
+      getCoffeesInRange(start, end),
+      getCoffeeTypeBreakdown(start, end),
+    ]);
     setData(coffees);
+    setBreakdown(types);
     setLoading(false);
   }, [period]);
 
@@ -162,45 +168,81 @@ export default function StatsScreen() {
           <ActivityIndicator size="large" color={colors.accent} />
         </View>
       ) : (
-        <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>
-            {period === "week"
-              ? "Esta semana"
-              : period === "month"
-              ? "Últimos 30 días"
-              : "Últimos 12 meses"}
-          </Text>
-          {period === "year" ? (
-            <BarChart
-              data={chartData}
-              width={screenWidth}
-              height={220}
-              chartConfig={chartConfig}
-              style={styles.chart}
-              fromZero
-              showValuesOnTopOfBars
-              yAxisLabel=""
-              yAxisSuffix=""
-            />
-          ) : (
-            <LineChart
-              data={chartData}
-              width={screenWidth}
-              height={220}
-              chartConfig={{
-                ...chartConfig,
-                propsForDots: {
-                  r: period === "week" ? "5" : "3",
-                  strokeWidth: "2",
-                  stroke: colors.accent,
-                },
-              }}
-              style={styles.chart}
-              bezier
-              fromZero
-            />
-          )}
-        </View>
+        <>
+          <View style={styles.chartContainer}>
+            <Text style={styles.chartTitle}>
+              {period === "week"
+                ? "Esta semana"
+                : period === "month"
+                ? "Últimos 30 días"
+                : "Últimos 12 meses"}
+            </Text>
+            {period === "year" ? (
+              <BarChart
+                data={chartData}
+                width={screenWidth}
+                height={220}
+                chartConfig={chartConfig}
+                style={styles.chart}
+                fromZero
+                showValuesOnTopOfBars
+                yAxisLabel=""
+                yAxisSuffix=""
+              />
+            ) : (
+              <LineChart
+                data={chartData}
+                width={screenWidth}
+                height={220}
+                chartConfig={{
+                  ...chartConfig,
+                  propsForDots: {
+                    r: period === "week" ? "5" : "3",
+                    strokeWidth: "2",
+                    stroke: colors.accent,
+                  },
+                }}
+                style={styles.chart}
+                bezier
+                fromZero
+              />
+            )}
+          </View>
+
+          <View style={styles.breakdownContainer}>
+            <Text style={styles.breakdownTitle}>Por tipo</Text>
+            {breakdown.filter((b) => b.type !== null).length === 0 ? (
+              <Text style={styles.breakdownEmpty}>
+                Aún no etiquetaste cafés — usá el botón ∧ para elegir el tipo al añadir.
+              </Text>
+            ) : (
+              breakdown.filter((b) => b.type !== null).map((item) => {
+                const typeInfo = getTypeById(item.type);
+                const pct = totalCoffees > 0
+                  ? Math.round((item.count / totalCoffees) * 100)
+                  : 0;
+                return (
+                  <View key={item.type} style={styles.breakdownRow}>
+                    <Text style={styles.breakdownEmoji}>{typeInfo.emoji}</Text>
+                    <View style={styles.breakdownInfo}>
+                      <View style={styles.breakdownLabelRow}>
+                        <Text style={styles.breakdownLabel}>{typeInfo.label}</Text>
+                        <Text style={styles.breakdownCount}>
+                          {item.count} · {pct}%
+                        </Text>
+                      </View>
+                      <View style={styles.barTrack}>
+                        <View
+                          style={[styles.barFill, { width: `${pct}%` as any }]}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </View>
+        </>
       )}
     </ScrollView>
   );
@@ -339,5 +381,64 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
+  },
+  breakdownContainer: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+  },
+  breakdownTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.textSecondary,
+    marginBottom: 14,
+  },
+  breakdownEmpty: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: "center",
+    paddingVertical: 8,
+    lineHeight: 20,
+  },
+  breakdownRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 14,
+  },
+  breakdownEmoji: {
+    fontSize: 22,
+    width: 28,
+    textAlign: "center",
+  },
+  breakdownInfo: {
+    flex: 1,
+    gap: 6,
+  },
+  breakdownLabelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  breakdownLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.text,
+  },
+  breakdownCount: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  barTrack: {
+    height: 6,
+    backgroundColor: colors.border,
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  barFill: {
+    height: 6,
+    backgroundColor: colors.accent,
+    borderRadius: 3,
   },
 });
