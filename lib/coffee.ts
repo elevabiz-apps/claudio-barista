@@ -58,9 +58,12 @@ export async function getWeekSummary(): Promise<{
   avg: string;
 }> {
   const today = getLocalDate();
-  const start = new Date(today + "T12:00:00");
-  start.setDate(start.getDate() - 6);
+  const todayDate = new Date(today + "T12:00:00");
+  const daysSinceMonday = (todayDate.getDay() + 6) % 7;
+  const start = new Date(todayDate);
+  start.setDate(start.getDate() - daysSinceMonday);
   const startStr = start.toISOString().split("T")[0];
+  const daysElapsed = daysSinceMonday + 1;
 
   const { count, error } = await supabase
     .from("coffees")
@@ -73,7 +76,7 @@ export async function getWeekSummary(): Promise<{
     return { total: 0, avg: "0" };
   }
   const total = count ?? 0;
-  return { total, avg: (total / 7).toFixed(1) };
+  return { total, avg: (total / daysElapsed).toFixed(1) };
 }
 
 export async function addCoffeeForDate(date: string, type?: string | null): Promise<CoffeeEntry | null> {
