@@ -41,10 +41,12 @@ function getDateRange(period: Period): { start: string; end: string } {
   let start: Date;
 
   switch (period) {
-    case "week":
+    case "week": {
+      const daysSinceMonday = (now.getDay() + 6) % 7;
       start = new Date(now);
-      start.setDate(start.getDate() - 6);
+      start.setDate(start.getDate() - daysSinceMonday);
       break;
+    }
     case "month":
       start = new Date(now);
       start.setDate(start.getDate() - 29);
@@ -100,7 +102,7 @@ export default function StatsScreen() {
 
   function getDaysInPeriod(p: Period): number {
     switch (p) {
-      case "week": return 7;
+      case "week": return (new Date().getDay() + 6) % 7 + 1;
       case "month": return 30;
       case "year": return 365;
     }
@@ -163,7 +165,7 @@ export default function StatsScreen() {
         <View style={styles.chartContainer}>
           <Text style={styles.chartTitle}>
             {period === "week"
-              ? "Últimos 7 días"
+              ? "Esta semana"
               : period === "month"
               ? "Últimos 30 días"
               : "Últimos 12 meses"}
@@ -210,8 +212,10 @@ function buildChartData(period: Period, data: { date: string; count: number }[])
   if (period === "week") {
     const labels: string[] = [];
     const values: number[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
+    const now = new Date();
+    const daysSinceMonday = (now.getDay() + 6) % 7;
+    for (let i = daysSinceMonday; i >= 0; i--) {
+      const d = new Date(now);
       d.setDate(d.getDate() - i);
       const key = d.toISOString().split("T")[0];
       labels.push(getDayLabel(key));
