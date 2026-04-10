@@ -53,9 +53,7 @@ function getDateRange(period: Period): { start: string; end: string } {
       start.setDate(start.getDate() - 29);
       break;
     case "year":
-      start = new Date(now);
-      start.setMonth(start.getMonth() - 11);
-      start.setDate(1);
+      start = new Date(now.getFullYear(), 0, 1);
       break;
   }
 
@@ -110,7 +108,11 @@ export default function StatsScreen() {
     switch (p) {
       case "week": return (new Date().getDay() + 6) % 7 + 1;
       case "month": return 30;
-      case "year": return 365;
+      case "year": {
+        const now = new Date();
+        const jan1 = new Date(now.getFullYear(), 0, 1);
+        return Math.floor((now.getTime() - jan1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      }
     }
   }
 
@@ -175,7 +177,7 @@ export default function StatsScreen() {
                 ? "Esta semana"
                 : period === "month"
                 ? "Últimos 30 días"
-                : "Últimos 12 meses"}
+                : new Date().getFullYear().toString()}
             </Text>
             {period === "year" ? (
               <BarChart
@@ -279,14 +281,15 @@ function buildChartData(period: Period, data: { date: string; count: number }[])
     return { labels, datasets: [{ data: values }] };
   }
 
-  // Year: group by month
+  // Year: group by month (January → current month)
   const labels: string[] = [];
   const values: number[] = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    d.setDate(1);
-    const monthStr = d.toISOString().split("T")[0].slice(0, 7);
+  const now = new Date();
+  const currentMonth = now.getMonth(); // 0-indexed
+  const year = now.getFullYear();
+  for (let m = 0; m <= currentMonth; m++) {
+    const d = new Date(year, m, 1);
+    const monthStr = `${year}-${String(m + 1).padStart(2, "0")}`;
     const monthTotal = data
       .filter((entry) => entry.date.startsWith(monthStr))
       .reduce((sum, entry) => sum + entry.count, 0);
