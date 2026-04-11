@@ -22,6 +22,11 @@ import { getLocalDate, getLocalDateDisplay } from "../../lib/date";
 import { showToast } from "../../lib/toast";
 import { signOut } from "../../lib/auth";
 import CoffeeTypePicker from "../../components/CoffeeTypePicker";
+import {
+  getAchievementStats,
+  getNewlyUnlocked,
+  AchievementStats,
+} from "../../lib/achievements";
 
 function haptic(type: "success" | "light") {
   if (Platform.OS === "web") return;
@@ -41,19 +46,25 @@ export default function HomeScreen() {
   const [weekAvg, setWeekAvg] = useState("0");
   const [streak, setStreak] = useState(0);
   const [maxStreak, setMaxStreak] = useState(0);
+  const [totalCoffees, setTotalCoffees] = useState(0);
+  const [uniqueTypes, setUniqueTypes] = useState(0);
 
-  const fetchData = useCallback(async () => {
-    const [c, week, streaks] = await Promise.all([
+  const fetchData = useCallback(async (): Promise<AchievementStats> => {
+    const [c, week, streaks, achStats] = await Promise.all([
       getTodayCount(),
       getWeekSummary(),
       getStreaks(),
+      getAchievementStats(),
     ]);
     setCount(c);
     setWeekTotal(week.total);
     setWeekAvg(week.avg);
     setStreak(streaks.current);
     setMaxStreak(streaks.max);
+    setTotalCoffees(achStats.totalCoffees);
+    setUniqueTypes(achStats.uniqueTypes);
     setLoading(false);
+    return achStats;
   }, []);
 
   useFocusEffect(
@@ -64,11 +75,22 @@ export default function HomeScreen() {
 
   const handleAdd = async (type?: string | null) => {
     setAdding(true);
+    const statsBefore: AchievementStats = {
+      totalCoffees,
+      maxStreak,
+      uniqueTypes,
+    };
     const result = await addCoffee(type);
     if (result) {
-      setCount((prev) => prev + 1);
-      setWeekTotal((prev) => prev + 1);
       haptic("success");
+      const statsAfter = await fetchData();
+      const newAchievements = getNewlyUnlocked(statsBefore, statsAfter);
+      if (newAchievements.length > 0) {
+        const first = newAchievements[0];
+        setTimeout(() => {
+          showToast(`${first.emoji} ${first.title} desbloqueado!`, "success");
+        }, 400);
+      }
     } else {
       showToast("No se pudo añadir el café", "error");
     }

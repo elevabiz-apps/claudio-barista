@@ -10,9 +10,15 @@ import {
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { LineChart, BarChart } from "react-native-chart-kit";
+import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../lib/theme";
 import { getCoffeesInRange, getCoffeeTypeBreakdown } from "../../lib/coffee";
 import { getTypeById } from "../../lib/coffeeTypes";
+import {
+  getAchievementStats,
+  evaluateAchievements,
+  AchievementResult,
+} from "../../lib/achievements";
 
 type Period = "week" | "month" | "year";
 
@@ -79,17 +85,20 @@ export default function StatsScreen() {
   const [period, setPeriod] = useState<Period>("week");
   const [data, setData] = useState<{ date: string; count: number }[]>([]);
   const [breakdown, setBreakdown] = useState<{ type: string | null; count: number }[]>([]);
+  const [achievements, setAchievements] = useState<AchievementResult[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     const { start, end } = getDateRange(period);
-    const [coffees, types] = await Promise.all([
+    const [coffees, types, achStats] = await Promise.all([
       getCoffeesInRange(start, end),
       getCoffeeTypeBreakdown(start, end),
+      getAchievementStats(),
     ]);
     setData(coffees);
     setBreakdown(types);
+    setAchievements(evaluateAchievements(achStats));
     setLoading(false);
   }, [period]);
 
@@ -243,6 +252,54 @@ export default function StatsScreen() {
                 );
               })
             )}
+          </View>
+
+          <View style={styles.achievementsContainer}>
+            <Text style={styles.achievementsTitle}>Logros</Text>
+            <Text style={styles.achievementsSubtitle}>
+              {achievements.filter((a) => a.unlocked).length} de {achievements.length} desbloqueados
+            </Text>
+            {(["streak", "volume", "variety"] as const).map((cat) => {
+              const catAchievements = achievements.filter(
+                (a) => a.achievement.category === cat
+              );
+              const catLabel =
+                cat === "streak" ? "Rachas" : cat === "volume" ? "Volumen" : "Variedad";
+              return (
+                <View key={cat} style={styles.achievementCategory}>
+                  <Text style={styles.categoryLabel}>{catLabel}</Text>
+                  {catAchievements.map(({ achievement, unlocked }) => (
+                    <View
+                      key={achievement.id}
+                      style={[
+                        styles.achievementRow,
+                        !unlocked && styles.achievementLocked,
+                      ]}
+                    >
+                      <Text style={styles.achievementEmoji}>
+                        {achievement.emoji}
+                      </Text>
+                      <View style={styles.achievementInfo}>
+                        <Text
+                          style={[
+                            styles.achievementName,
+                            !unlocked && styles.achievementNameLocked,
+                          ]}
+                        >
+                          {achievement.title}
+                        </Text>
+                        <Text style={styles.achievementDesc}>
+                          {achievement.description}
+                        </Text>
+                      </View>
+                      {unlocked && (
+                        <Ionicons name="checkmark-circle" size={20} color={colors.accent} />
+                      )}
+                    </View>
+                  ))}
+                </View>
+              );
+            })}
           </View>
         </>
       )}
@@ -443,5 +500,67 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: colors.accent,
     borderRadius: 3,
+  },
+  achievementsContainer: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+  },
+  achievementsTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  achievementsSubtitle: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 16,
+  },
+  achievementCategory: {
+    marginBottom: 12,
+  },
+  categoryLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.accent,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  achievementRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 6,
+    backgroundColor: colors.surfaceLight,
+  },
+  achievementLocked: {
+    opacity: 0.4,
+  },
+  achievementEmoji: {
+    fontSize: 22,
+    width: 28,
+    textAlign: "center",
+  },
+  achievementInfo: {
+    flex: 1,
+  },
+  achievementName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.text,
+  },
+  achievementNameLocked: {
+    color: colors.textSecondary,
+  },
+  achievementDesc: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
 });
