@@ -18,6 +18,8 @@ import {
   getAchievementStats,
   evaluateAchievements,
   AchievementResult,
+  CATEGORIES,
+  CATEGORY_LABELS,
 } from "../../lib/achievements";
 
 type Period = "week" | "month" | "year";
@@ -259,12 +261,11 @@ export default function StatsScreen() {
             <Text style={styles.achievementsSubtitle}>
               {achievements.filter((a) => a.unlocked).length} de {achievements.length} desbloqueados
             </Text>
-            {(["streak", "volume", "variety"] as const).map((cat) => {
+            {CATEGORIES.map((cat) => {
               const catAchievements = achievements.filter(
                 (a) => a.achievement.category === cat
               );
-              const catLabel =
-                cat === "streak" ? "Rachas" : cat === "volume" ? "Volumen" : "Variedad";
+              const catLabel = CATEGORY_LABELS[cat];
               return (
                 <View key={cat} style={styles.achievementCategory}>
                   <Text style={styles.categoryLabel}>{catLabel}</Text>

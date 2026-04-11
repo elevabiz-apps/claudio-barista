@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -46,8 +46,7 @@ export default function HomeScreen() {
   const [weekAvg, setWeekAvg] = useState("0");
   const [streak, setStreak] = useState(0);
   const [maxStreak, setMaxStreak] = useState(0);
-  const [totalCoffees, setTotalCoffees] = useState(0);
-  const [uniqueTypes, setUniqueTypes] = useState(0);
+  const achStatsRef = useRef<AchievementStats | null>(null);
 
   const fetchData = useCallback(async (): Promise<AchievementStats> => {
     const [c, week, streaks, achStats] = await Promise.all([
@@ -61,8 +60,7 @@ export default function HomeScreen() {
     setWeekAvg(week.avg);
     setStreak(streaks.current);
     setMaxStreak(streaks.max);
-    setTotalCoffees(achStats.totalCoffees);
-    setUniqueTypes(achStats.uniqueTypes);
+    achStatsRef.current = achStats;
     setLoading(false);
     return achStats;
   }, []);
@@ -75,16 +73,14 @@ export default function HomeScreen() {
 
   const handleAdd = async (type?: string | null) => {
     setAdding(true);
-    const statsBefore: AchievementStats = {
-      totalCoffees,
-      maxStreak,
-      uniqueTypes,
-    };
+    const statsBefore = achStatsRef.current;
     const result = await addCoffee(type);
     if (result) {
       haptic("success");
       const statsAfter = await fetchData();
-      const newAchievements = getNewlyUnlocked(statsBefore, statsAfter);
+      const newAchievements = statsBefore
+        ? getNewlyUnlocked(statsBefore, statsAfter)
+        : [];
       if (newAchievements.length > 0) {
         const first = newAchievements[0];
         setTimeout(() => {
