@@ -57,8 +57,7 @@ function getDateRange(period: Period): { start: string; end: string } {
       break;
     }
     case "month":
-      start = new Date(now);
-      start.setDate(start.getDate() - 29);
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
       break;
     case "year":
       start = new Date(now.getFullYear(), 0, 1);
@@ -118,7 +117,7 @@ export default function StatsScreen() {
   function getDaysInPeriod(p: Period): number {
     switch (p) {
       case "week": return (new Date().getDay() + 6) % 7 + 1;
-      case "month": return 30;
+      case "month": return new Date().getDate();
       case "year": {
         const now = new Date();
         const jan1 = new Date(now.getFullYear(), 0, 1);
@@ -187,7 +186,7 @@ export default function StatsScreen() {
               {period === "week"
                 ? "Esta semana"
                 : period === "month"
-                ? "Últimos 30 días"
+                ? "Este mes"
                 : new Date().getFullYear().toString()}
             </Text>
             {period === "year" ? (
@@ -329,11 +328,14 @@ function buildChartData(period: Period, data: { date: string; count: number }[])
   if (period === "month") {
     const labels: string[] = [];
     const values: number[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const today = now.getDate();
+    for (let day = 1; day <= today; day++) {
+      const d = new Date(year, month, day);
       const key = d.toISOString().split("T")[0];
-      labels.push(i % 5 === 0 ? getDayOfMonthLabel(key) : "");
+      labels.push(day === 1 || day % 5 === 0 ? getDayOfMonthLabel(key) : "");
       values.push(dataMap.get(key) ?? 0);
     }
     return { labels, datasets: [{ data: values }] };
